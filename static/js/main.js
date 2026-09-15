@@ -1,4 +1,3 @@
-// ================== ГЛОБАЛЬНЫЕ ДАННЫЕ ==================
 let allGroups = [];
 let allTeachers = [];
 let allSubjects = [];
@@ -8,7 +7,6 @@ let allLessons = [];
 const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const PAIRS = [1, 2, 3, 4, 5];
 
-// ================== ЗАГРУЗКА ДАННЫХ ==================
 async function loadAll() {
     const [groups, teachers, subjects, classrooms, lessons] = await Promise.all([
         fetch('/api/groups').then(r => r.json()),
@@ -27,7 +25,6 @@ async function loadAll() {
     renderTeachersPanel();
 }
 
-// ================== ТАБЛИЦА РАСПИСАНИЯ ==================
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     if (!container) return;
@@ -39,23 +36,19 @@ function renderSchedule() {
 
     let html = '<table class="schedule-table">';
 
-    // Заголовок: группы в столбцах
     html += '<thead><tr><th class="day-col">День / Пара</th>';
     allGroups.forEach(g => {
         html += `<th class="group-col">${g.name}</th>`;
     });
     html += '</tr></thead><tbody>';
 
-    // Строки: дни недели и пары
     DAYS.forEach(day => {
-        // Строка с названием дня
         html += `<tr class="day-row"><td colspan="${allGroups.length + 1}">${day.toUpperCase()}</td></tr>`;
 
         PAIRS.forEach(pair => {
             html += `<tr><td class="pair-col">${pair} пара</td>`;
 
             allGroups.forEach(group => {
-                // Ищем занятия для этой группы, дня и пары (в любой из недель)
                 const lessons = allLessons.filter(l =>
                     l.group_id === group.id &&
                     l.day === day &&
@@ -79,7 +72,6 @@ function renderSchedule() {
     container.innerHTML = html;
 }
 
-// ================== КАРТОЧКА ЗАНЯТИЯ ==================
 function renderCard(lesson) {
     const week1 = lesson.week1_lesson ? `${lesson.week1_lesson} пара` : '—';
     const week2 = lesson.week2_lesson ? `${lesson.week2_lesson} пара` : '—';
@@ -105,7 +97,6 @@ function renderCard(lesson) {
     `;
 }
 
-// ================== ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ ==================
 function renderTeachersPanel() {
     const container = document.getElementById('teachers-list');
     if (!container) return;
@@ -136,7 +127,6 @@ function renderTeachersPanel() {
     container.innerHTML = html;
 }
 
-// ================== МОДАЛЬНОЕ ОКНО ==================
 function openAddForm() {
     document.getElementById('modal-title').textContent = 'Добавление занятия';
     document.getElementById('lesson-id').value = '';
@@ -215,7 +205,6 @@ function closeModal() {
     document.getElementById('lesson-modal').style.display = 'none';
 }
 
-// ================== СОХРАНЕНИЕ ==================
 async function saveLesson() {
     const id = document.getElementById('lesson-id').value;
 
@@ -268,7 +257,6 @@ async function deleteCurrentLesson() {
     await loadAll();
 }
 
-// ================== БЫСТРОЕ ДОБАВЛЕНИЕ ИЗ ПАНЕЛИ ==================
 function quickAdd(teacherId, subjectId) {
     openAddForm();
     document.getElementById('lesson-teacher').value = teacherId;
@@ -276,5 +264,4 @@ function quickAdd(teacherId, subjectId) {
     document.getElementById('lesson-subject').value = subjectId;
 }
 
-// ================== СТАРТ ==================
 loadAll();

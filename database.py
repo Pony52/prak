@@ -16,7 +16,6 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Таблица групп
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS groups (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,7 +25,6 @@ def init_db():
         )
     ''')
 
-    # Таблица преподавателей
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS teachers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -36,7 +34,6 @@ def init_db():
         )
     ''')
 
-    # Таблица дисциплин
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS subjects (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -45,7 +42,6 @@ def init_db():
         )
     ''')
 
-    # Таблица связи преподавателей и дисциплин (многие ко многим)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS teacher_subjects (
             teacher_id INTEGER,
@@ -56,7 +52,6 @@ def init_db():
         )
     ''')
 
-    # Таблица кабинетов
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS classrooms (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,7 +61,6 @@ def init_db():
         )
     ''')
 
-    # Таблица занятий
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS lessons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

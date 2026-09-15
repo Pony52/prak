@@ -4,14 +4,12 @@ from database import get_db, init_db
 app = Flask(__name__)
 
 
-# ============ ГЛАВНАЯ СТРАНИЦА ============
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
-# ============ API: ГРУППЫ ============
 
 @app.route('/api/groups', methods=['GET'])
 def get_groups():
@@ -68,7 +66,6 @@ def delete_group(group_id):
     conn.close()
     return jsonify({'success': True})
 
-# ============ API: ПРЕПОДАВАТЕЛИ ============
 
 @app.route('/api/teachers', methods=['GET'])
 def get_teachers():
@@ -78,7 +75,6 @@ def get_teachers():
     result = []
     for t in teachers:
         teacher = dict(t)
-        # Получаем дисциплины преподавателя
         subjects = conn.execute('''
             SELECT s.id, s.name, s.short_name
             FROM subjects s
@@ -111,7 +107,6 @@ def add_teacher():
     )
     teacher_id = cursor.lastrowid
 
-    # Привязываем дисциплины
     for sid in subject_ids:
         cursor.execute(
             'INSERT INTO teacher_subjects (teacher_id, subject_id) VALUES (?, ?)',
@@ -135,7 +130,6 @@ def update_teacher(teacher_id):
         (data.get('name'), data.get('short_name'), data.get('color'), teacher_id)
     )
 
-    # Обновляем дисциплины
     if 'subject_ids' in data:
         cursor.execute('DELETE FROM teacher_subjects WHERE teacher_id = ?', (teacher_id,))
         for sid in data['subject_ids']:
@@ -158,7 +152,6 @@ def delete_teacher(teacher_id):
     conn.close()
     return jsonify({'success': True})
 
-# ============ API: ДИСЦИПЛИНЫ ============
 
 @app.route('/api/subjects', methods=['GET'])
 def get_subjects():
@@ -214,7 +207,6 @@ def delete_subject(subject_id):
     conn.close()
     return jsonify({'success': True})
 
-# ============ HTML-СТРАНИЦЫ ============
 
 @app.route('/groups')
 def page_groups():
@@ -230,7 +222,6 @@ def page_teachers():
 def page_subjects():
     return render_template('subjects.html')
 
-# ============ API: КАБИНЕТЫ ============
 
 @app.route('/api/classrooms', methods=['GET'])
 def get_classrooms():
@@ -272,7 +263,6 @@ def delete_classroom(cid):
     conn.close()
     return jsonify({'success': True})
 
-# ============ API: ЗАНЯТИЯ ============
 
 @app.route('/api/lessons', methods=['GET'])
 def get_lessons():
@@ -314,7 +304,6 @@ def add_lesson():
     if not all([group_id, teacher_id, subject_id, day]):
         return jsonify({'error': 'Заполните обязательные поля'}), 400
 
-    # Преобразуем пустые значения в None
     if week1_lesson in ('', None, 'null'):
         week1_lesson = None
     if week2_lesson in ('', None, 'null'):
@@ -376,7 +365,6 @@ def delete_lesson(lesson_id):
     conn.close()
     return jsonify({'success': True})
 
-# ============ ЗАПУСК ============
 
 if __name__ == '__main__':
     init_db()

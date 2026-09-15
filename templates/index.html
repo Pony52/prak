@@ -5,18 +5,15 @@
 {% block content %}
 <div class="main-wrapper">
 
-    <!-- ЛЕВАЯ ЧАСТЬ: ТАБЛИЦА РАСПИСАНИЯ -->
     <div class="schedule-area">
         <div class="schedule-header">
             <h2>Расписание занятий</h2>
             <button class="btn-add" onclick="openAddForm()">+ Добавить занятие</button>
         </div>
         <div id="schedule-container">
-            <!-- Таблица расписания будет построена через JS -->
         </div>
     </div>
 
-    <!-- ПРАВАЯ ЧАСТЬ: ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ -->
     <aside class="teachers-panel">
         <h2>Преподаватели</h2>
         <div id="teachers-list"></div>
@@ -24,7 +21,6 @@
 
 </div>
 
-<!-- МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ/РЕДАКТИРОВАНИЕ ЗАНЯТИЯ -->
 <div id="lesson-modal" class="modal-overlay" style="display:none;">
     <div class="modal">
         <h2 id="modal-title">Добавление занятия</h2>
