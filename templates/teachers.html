@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Преподаватели{% endblock %}
+
+{% block content %}
+<h2>Справочник преподавателей</h2>
+
+<div class="form-block">
+    <h3>Добавить преподавателя</h3>
+    <input type="text" id="teacher-name" placeholder="ФИО (Иванов Сергей Владимирович)">
+    <input type="text" id="teacher-short" placeholder="Краткое (ИВ)">
+    <input type="color" id="teacher-color" value="#3498db">
+    <div>
+        <label>Дисциплины:</label>
+        <div id="subjects-checkboxes"></div>
+    </div>
+    <button onclick="addTeacher()">Добавить</button>
+</div>
+
+<table id="teachers-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>ФИО</th>
+            <th>Кратко</th>
+            <th>Цвет</th>
+            <th>Дисциплины</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+async function loadSubjectsForCheckboxes() {
+    const res = await fetch('/api/subjects');
+    const subjects = await res.json();
+    const container = document.getElementById('subjects-checkboxes');
+    container.innerHTML = '';
+    subjects.forEach(s => {
+        container.innerHTML += `
+            <label>
+                <input type="checkbox" value="${s.id}" class="subject-cb">
+                ${s.name}
+            </label>`;
+    });
+}
+
+async function loadTeachers() {
+    const res = await fetch('/api/teachers');
+    const teachers = await res.json();
+    const tbody = document.querySelector('#teachers-table tbody');
+    tbody.innerHTML = '';
+    teachers.forEach(t => {
+        const subjectNames = t.subjects.map(s => s.short_name || s.name).join(', ');
+        tbody.innerHTML += `
+            <tr>
+                <td>${t.id}</td>
+                <td>${t.name}</td>
+                <td>${t.short_name || ''}</td>
+                <td><span style="background:${t.color}; padding:5px 15px; border-radius:3px;">${t.color}</span></td>
+                <td>${subjectNames}</td>
+                <td><button onclick="deleteTeacher(${t.id})">Удалить</button></td>
+            </tr>`;
+    });
+}
+
+async function addTeacher() {
+    const name = document.getElementById('teacher-name').value;
+    const short_name = document.getElementById('teacher-short').value;
+    const color = document.getElementById('teacher-color').value;
+    const subject_ids = Array.from(document.querySelectorAll('.subject-cb:checked'))
+                            .map(cb => parseInt(cb.value));
+
+    if (!name) { alert('Введите ФИО'); return; }
+
+    await fetch('/api/teachers', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, short_name, color, subject_ids})
+    });
+
+    document.getElementById('teacher-name').value = '';
+    document.getElementById('teacher-short').value = '';
+    document.querySelectorAll('.subject-cb').forEach(cb => cb.checked = false);
+    loadTeachers();
+}
+
+async function deleteTeacher(id) {
+    if (!confirm('Удалить преподавателя?')) return;
+    await fetch(`/api/teachers/${id}`, {method: 'DELETE'});
+    loadTeachers();
+}
+
+loadSubjectsForCheckboxes();
+loadTeachers();
+</script>
+{% endblock %}

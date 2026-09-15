@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Группы{% endblock %}
+
+{% block content %}
+<h2>Справочник групп</h2>
+
+<div class="form-block">
+    <h3>Добавить группу</h3>
+    <input type="text" id="group-name" placeholder="Название (П-21)">
+    <input type="text" id="group-speciality" placeholder="Специальность">
+    <input type="number" id="group-course" placeholder="Курс" value="1">
+    <button onclick="addGroup()">Добавить</button>
+</div>
+
+<table id="groups-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Специальность</th>
+            <th>Курс</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+async function loadGroups() {
+    const res = await fetch('/api/groups');
+    const groups = await res.json();
+    const tbody = document.querySelector('#groups-table tbody');
+    tbody.innerHTML = '';
+    groups.forEach(g => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${g.id}</td>
+                <td>${g.name}</td>
+                <td>${g.speciality || ''}</td>
+                <td>${g.course || ''}</td>
+                <td>
+                    <button onclick="deleteGroup(${g.id})">Удалить</button>
+                </td>
+            </tr>`;
+    });
+}
+
+async function addGroup() {
+    const name = document.getElementById('group-name').value;
+    const speciality = document.getElementById('group-speciality').value;
+    const course = parseInt(document.getElementById('group-course').value);
+
+    if (!name) { alert('Введите название'); return; }
+
+    await fetch('/api/groups', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({name, speciality, course})
+    });
+
+    document.getElementById('group-name').value = '';
+    document.getElementById('group-speciality').value = '';
+    loadGroups();
+}
+
+async function deleteGroup(id) {
+    if (!confirm('Удалить группу?')) return;
+    await fetch(`/api/groups/${id}`, {method: 'DELETE'});
+    loadGroups();
+}
+
+loadGroups();
+</script>
+{% endblock %}

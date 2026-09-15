@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Расписание{% endblock %}
+
+{% block content %}
+<div class="main-wrapper">
+
+    <!-- ЛЕВАЯ ЧАСТЬ: ТАБЛИЦА РАСПИСАНИЯ -->
+    <div class="schedule-area">
+        <div class="schedule-header">
+            <h2>Расписание занятий</h2>
+            <button class="btn-add" onclick="openAddForm()">+ Добавить занятие</button>
+        </div>
+        <div id="schedule-container">
+            <!-- Таблица расписания будет построена через JS -->
+        </div>
+    </div>
+
+    <!-- ПРАВАЯ ЧАСТЬ: ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ -->
+    <aside class="teachers-panel">
+        <h2>Преподаватели</h2>
+        <div id="teachers-list"></div>
+    </aside>
+
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО: ДОБАВЛЕНИЕ/РЕДАКТИРОВАНИЕ ЗАНЯТИЯ -->
+<div id="lesson-modal" class="modal-overlay" style="display:none;">
+    <div class="modal">
+        <h2 id="modal-title">Добавление занятия</h2>
+
+        <input type="hidden" id="lesson-id">
+
+        <label>Группа:</label>
+        <select id="lesson-group"></select>
+
+        <label>День:</label>
+        <select id="lesson-day">
+            <option>Понедельник</option>
+            <option>Вторник</option>
+            <option>Среда</option>
+            <option>Четверг</option>
+            <option>Пятница</option>
+            <option>Суббота</option>
+        </select>
+
+        <label>Преподаватель:</label>
+        <select id="lesson-teacher" onchange="updateSubjectOptions()"></select>
+
+        <label>Дисциплина:</label>
+        <select id="lesson-subject"></select>
+
+        <label>1 неделя (пара):</label>
+        <select id="lesson-week1">
+            <option value="">—</option>
+            <option value="1">1 пара</option>
+            <option value="2">2 пара</option>
+            <option value="3">3 пара</option>
+            <option value="4">4 пара</option>
+            <option value="5">5 пара</option>
+        </select>
+
+        <label>2 неделя (пара):</label>
+        <select id="lesson-week2">
+            <option value="">—</option>
+            <option value="1">1 пара</option>
+            <option value="2">2 пара</option>
+            <option value="3">3 пара</option>
+            <option value="4">4 пара</option>
+            <option value="5">5 пара</option>
+        </select>
+
+        <label>Кабинет:</label>
+        <select id="lesson-classroom"></select>
+
+        <label>Тип занятия:</label>
+        <select id="lesson-type">
+            <option>Лекция</option>
+            <option>Практика</option>
+            <option>Лабораторная</option>
+            <option>Семинар</option>
+        </select>
+
+        <div class="modal-buttons">
+            <button class="btn-delete" id="btn-delete-lesson" onclick="deleteCurrentLesson()" style="display:none;">Удалить</button>
+            <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+            <button class="btn-save" onclick="saveLesson()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}
