@@ -118,7 +118,6 @@ td button:hover {
     display: block;
     margin: 5px 0;
 }
-/* ============ ГЛАВНЫЙ ЭКРАН ============ */
 
 .main-wrapper {
     display: flex;
@@ -150,7 +149,6 @@ td button:hover {
 
 .btn-add:hover { background: #219150; }
 
-/* ============ ТАБЛИЦА РАСПИСАНИЯ ============ */
 
 .schedule-table {
     width: 100%;
@@ -211,7 +209,6 @@ td button:hover {
     background: #f0f7ff;
 }
 
-/* ============ КАРТОЧКА ЗАНЯТИЯ ============ */
 
 .lesson-card {
     padding: 8px 10px;
@@ -270,7 +267,6 @@ td button:hover {
     padding-top: 3px;
 }
 
-/* ============ ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ ============ */
 
 .teachers-panel {
     width: 300px;
@@ -332,7 +328,6 @@ td button:hover {
     color: #2874a6;
 }
 
-/* ============ МОДАЛЬНОЕ ОКНО ============ */
 
 .modal-overlay {
     position: fixed;
