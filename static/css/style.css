@@ -407,7 +407,6 @@ td button:hover {
 }
 
 .btn-delete:hover { background: #c0392b; }
-/* ============ DRAG & DROP ============ */
 
 .cell {
     position: relative;

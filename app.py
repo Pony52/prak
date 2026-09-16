@@ -286,7 +286,6 @@ def get_lessons():
     conn.close()
     return jsonify([dict(l) for l in lessons])
 
-# ============ ПРОВЕРКА КОНФЛИКТОВ ============
 
 def check_conflicts(conn, lesson_data, exclude_id=None):
     """
@@ -303,7 +302,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
     week1 = lesson_data.get('week1_lesson')
     week2 = lesson_data.get('week2_lesson')
 
-    # Нормализуем значения
+    # нормализуем значения
     if week1 in ('', None, 'null'):
         week1 = None
     else:
@@ -319,7 +318,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
     else:
         classroom_id = int(classroom_id)
 
-    # Собираем все занятия в тот же день, кроме редактируемого
+    # собираем все занятия в тот же день, кроме редактируемого
     if exclude_id:
         rows = conn.execute(
             'SELECT * FROM lessons WHERE day = ? AND id != ?',
@@ -331,7 +330,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
             (day,)
         ).fetchall()
 
-    # Пары, которые занимает новое занятие
+    # пары, которые занимает новое занятие
     new_pairs = []
     if week1:
         new_pairs.append(('1 неделя', week1))
@@ -341,7 +340,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
     if not new_pairs:
         return conflicts
 
-    # Получаем имена для сообщений
+    # получаем имена для сообщений
     group = conn.execute('SELECT name FROM groups WHERE id = ?', (group_id,)).fetchone()
     teacher = conn.execute('SELECT name FROM teachers WHERE id = ?', (teacher_id,)).fetchone()
     group_name = group['name'] if group else '?'
@@ -352,16 +351,16 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
         cr = conn.execute('SELECT number FROM classrooms WHERE id = ?', (classroom_id,)).fetchone()
         classroom_name = cr['number'] if cr else None
 
-    # Проверяем каждое существующее занятие
+    # проверяем каждое существующее занятие
     for r in rows:
         for (week_label, pair_num) in new_pairs:
-            # Определяем пару в существующем занятии для соответствующей недели
+            # определяем пару в существующем занятии для соответствующей недели
             existing_pair = r['week1_lesson'] if week_label == '1 неделя' else r['week2_lesson']
 
             if existing_pair != pair_num:
                 continue
 
-            # Конфликт группы
+            # конфликт группы
             if r['group_id'] == group_id:
                 other = conn.execute(
                     'SELECT s.name FROM subjects s WHERE s.id = ?',
@@ -373,7 +372,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
                     f"«{other_name}» в {day}, {pair_num} пара, {week_label}."
                 )
 
-            # Конфликт преподавателя
+            # конфликт преподавателя
             if r['teacher_id'] == teacher_id:
                 other = conn.execute(
                     'SELECT name FROM groups g WHERE g.id = ?',
@@ -385,7 +384,7 @@ def check_conflicts(conn, lesson_data, exclude_id=None):
                     f"({other_name}) в {day}, {pair_num} пара, {week_label}."
                 )
 
-            # Конфликт кабинета
+            # конфликт кабинета
             if classroom_id and r['classroom_id'] == classroom_id:
                 other = conn.execute(
                     'SELECT name FROM groups g WHERE g.id = ?',
@@ -425,7 +424,7 @@ def add_lesson():
 
     conn = get_db()
 
-    # Проверка конфликтов
+    # проверка конфликтов
     conflicts = check_conflicts(conn, data)
     if conflicts:
         conn.close()
@@ -461,7 +460,7 @@ def update_lesson(lesson_id):
 
     conn = get_db()
 
-    # Проверка конфликтов (исключая само занятие)
+    # проверка конфликтов
     conflicts = check_conflicts(conn, data, exclude_id=lesson_id)
     if conflicts:
         conn.close()

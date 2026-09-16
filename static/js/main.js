@@ -1,4 +1,3 @@
-// ================== ГЛОБАЛЬНЫЕ ДАННЫЕ ==================
 let allGroups = [];
 let allTeachers = [];
 let allSubjects = [];
@@ -8,10 +7,9 @@ let allLessons = [];
 const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const PAIRS = [1, 2, 3, 4, 5];
 
-// Данные о перетаскиваемом занятии
+// данные о перетаскиваемом занятии
 let dragData = null;
 
-// ================== ЗАГРУЗКА ДАННЫХ ==================
 async function loadAll() {
     const [groups, teachers, subjects, classrooms, lessons] = await Promise.all([
         fetch('/api/groups').then(r => r.json()),
@@ -30,7 +28,6 @@ async function loadAll() {
     renderTeachersPanel();
 }
 
-// ================== ТАБЛИЦА РАСПИСАНИЯ ==================
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     if (!container) return;
@@ -86,7 +83,6 @@ function renderSchedule() {
     container.innerHTML = html;
 }
 
-// ================== КАРТОЧКА ЗАНЯТИЯ ==================
 function renderCard(lesson) {
     const week1 = lesson.week1_lesson ? `${lesson.week1_lesson} пара` : '—';
     const week2 = lesson.week2_lesson ? `${lesson.week2_lesson} пара` : '—';
@@ -116,7 +112,6 @@ function renderCard(lesson) {
     `;
 }
 
-// ================== ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ ==================
 function renderTeachersPanel() {
     const container = document.getElementById('teachers-list');
     if (!container) return;
@@ -156,9 +151,8 @@ function renderTeachersPanel() {
     container.innerHTML = html;
 }
 
-// ================== DRAG & DROP ==================
 
-// Перетаскивание дисциплины из панели (создание новой карточки)
+// перетаскивание дисциплины из панели (создание новой карточки)
 function onSubjectDragStart(event, teacherId, subjectId) {
     dragData = {
         type: 'new',
@@ -169,7 +163,7 @@ function onSubjectDragStart(event, teacherId, subjectId) {
     event.dataTransfer.setData('text/plain', 'new-lesson');
 }
 
-// Перетаскивание существующей карточки (перемещение)
+// перетаскивание существующей карточки (перемещение)
 function onDragStart(event, lessonId) {
     dragData = {
         type: 'move',
@@ -210,17 +204,17 @@ function onDrop(event) {
     const pair = parseInt(cell.dataset.pair);
 
     if (dragData.type === 'new') {
-        // Создаём занятие из перетащенной дисциплины
+        // создаю занятие из перетащенной дисциплины
         createFromDrop(dragData.teacherId, dragData.subjectId, groupId, day, pair);
     } else if (dragData.type === 'move') {
-        // Перемещаем существующее занятие
+        // перемещаем существующее занятие
         moveLesson(dragData.lessonId, groupId, day, pair);
     }
 
     dragData = null;
 }
 
-// Создание занятия перетаскиванием
+// создание занятия перетаскиванием
 async function createFromDrop(teacherId, subjectId, groupId, day, pair) {
     const data = {
         group_id: groupId,
@@ -253,13 +247,11 @@ async function createFromDrop(teacherId, subjectId, groupId, day, pair) {
     await loadAll();
 }
 
-// Перемещение занятия
+// перемещение занятия
 async function moveLesson(lessonId, groupId, day, pair) {
     const lesson = allLessons.find(l => l.id === lessonId);
     if (!lesson) return;
 
-    // Определяем, куда встанет занятие: если оно уже стоит на этой неделе в другом месте,
-    // нужно поменять соответствующую неделю. По умолчанию меняем обе недели.
     const data = {
         group_id: groupId,
         teacher_id: lesson.teacher_id,
@@ -291,13 +283,11 @@ async function moveLesson(lessonId, groupId, day, pair) {
     await loadAll();
 }
 
-// ================== ПОКАЗ КОНФЛИКТОВ ==================
 function showConflicts(conflicts) {
     const text = conflicts.join('\n\n');
     alert('Обнаружены конфликты:\n\n' + text);
 }
 
-// ================== МОДАЛЬНОЕ ОКНО ==================
 function openAddForm() {
     document.getElementById('modal-title').textContent = 'Добавление занятия';
     document.getElementById('lesson-id').value = '';
@@ -373,7 +363,6 @@ function closeModal() {
     document.getElementById('lesson-modal').style.display = 'none';
 }
 
-// ================== СОХРАНЕНИЕ ==================
 async function saveLesson() {
     const id = document.getElementById('lesson-id').value;
 
@@ -432,5 +421,4 @@ async function deleteCurrentLesson() {
     await loadAll();
 }
 
-// ================== СТАРТ ==================
 loadAll();
