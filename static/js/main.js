@@ -1,3 +1,4 @@
+// ================== ГЛОБАЛЬНЫЕ ДАННЫЕ ==================
 let allGroups = [];
 let allTeachers = [];
 let allSubjects = [];
@@ -7,6 +8,10 @@ let allLessons = [];
 const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
 const PAIRS = [1, 2, 3, 4, 5];
 
+// Данные о перетаскиваемом занятии
+let dragData = null;
+
+// ================== ЗАГРУЗКА ДАННЫХ ==================
 async function loadAll() {
     const [groups, teachers, subjects, classrooms, lessons] = await Promise.all([
         fetch('/api/groups').then(r => r.json()),
@@ -25,6 +30,7 @@ async function loadAll() {
     renderTeachersPanel();
 }
 
+// ================== ТАБЛИЦА РАСПИСАНИЯ ==================
 function renderSchedule() {
     const container = document.getElementById('schedule-container');
     if (!container) return;
@@ -35,7 +41,6 @@ function renderSchedule() {
     }
 
     let html = '<table class="schedule-table">';
-
     html += '<thead><tr><th class="day-col">День / Пара</th>';
     allGroups.forEach(g => {
         html += `<th class="group-col">${g.name}</th>`;
@@ -55,13 +60,22 @@ function renderSchedule() {
                     (l.week1_lesson === pair || l.week2_lesson === pair)
                 );
 
-                html += `<td class="cell" data-group="${group.id}" data-day="${day}" data-pair="${pair}">`;
+                html += `<td class="cell" 
+                             data-group="${group.id}" 
+                             data-day="${day}" 
+                             data-pair="${pair}"
+                             ondragover="onDragOver(event)"
+                             ondragleave="onDragLeave(event)"
+                             ondrop="onDrop(event)">
+                    <div class="cell-inner">`;
+
                 if (lessons.length > 0) {
                     lessons.forEach(l => {
                         html += renderCard(l);
                     });
                 }
-                html += '</td>';
+
+                html += `</div></td>`;
             });
 
             html += '</tr>';
@@ -72,6 +86,7 @@ function renderSchedule() {
     container.innerHTML = html;
 }
 
+// ================== КАРТОЧКА ЗАНЯТИЯ ==================
 function renderCard(lesson) {
     const week1 = lesson.week1_lesson ? `${lesson.week1_lesson} пара` : '—';
     const week2 = lesson.week2_lesson ? `${lesson.week2_lesson} пара` : '—';
@@ -80,6 +95,10 @@ function renderCard(lesson) {
     return `
         <div class="lesson-card" 
              style="background:${lesson.teacher_color};"
+             draggable="true"
+             data-lesson-id="${lesson.id}"
+             ondragstart="onDragStart(event, ${lesson.id})"
+             ondragend="onDragEnd(event)"
              onclick="openEditForm(${lesson.id})">
             <div class="card-teacher">
                 <span class="card-short">${lesson.teacher_short || ''}</span>
@@ -97,6 +116,7 @@ function renderCard(lesson) {
     `;
 }
 
+// ================== ПАНЕЛЬ ПРЕПОДАВАТЕЛЕЙ ==================
 function renderTeachersPanel() {
     const container = document.getElementById('teachers-list');
     if (!container) return;
@@ -114,19 +134,170 @@ function renderTeachersPanel() {
                     <span class="teacher-short" style="background:${t.color};">${t.short_name || ''}</span>
                     ${t.name}
                 </div>
-                <div class="teacher-subjects">
-                    ${t.subjects.map(s => `
-                        <div class="subject-item" onclick="quickAdd(${t.id}, ${s.id})">
+                <div class="teacher-subjects">`;
+
+        if (t.subjects.length === 0) {
+            html += `<em style="font-size:12px; color:#999;">Нет дисциплин</em>`;
+        } else {
+            t.subjects.forEach(s => {
+                html += `<div class="subject-item"
+                              draggable="true"
+                              data-teacher-id="${t.id}"
+                              data-subject-id="${s.id}"
+                              ondragstart="onSubjectDragStart(event, ${t.id}, ${s.id})"
+                              ondragend="onDragEnd(event)">
                             • ${s.name}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+                         </div>`;
+            });
+        }
+
+        html += `</div></div>`;
     });
     container.innerHTML = html;
 }
 
+// ================== DRAG & DROP ==================
+
+// Перетаскивание дисциплины из панели (создание новой карточки)
+function onSubjectDragStart(event, teacherId, subjectId) {
+    dragData = {
+        type: 'new',
+        teacherId: teacherId,
+        subjectId: subjectId
+    };
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', 'new-lesson');
+}
+
+// Перетаскивание существующей карточки (перемещение)
+function onDragStart(event, lessonId) {
+    dragData = {
+        type: 'move',
+        lessonId: lessonId
+    };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', 'move-lesson');
+    event.target.classList.add('dragging');
+}
+
+function onDragEnd(event) {
+    document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.drop-hover').forEach(el => el.classList.remove('drop-hover'));
+}
+
+function onDragOver(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = dragData && dragData.type === 'move' ? 'move' : 'copy';
+    const cell = event.currentTarget;
+    if (!cell.classList.contains('drop-hover')) {
+        cell.classList.add('drop-hover');
+    }
+}
+
+function onDragLeave(event) {
+    event.currentTarget.classList.remove('drop-hover');
+}
+
+function onDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drop-hover');
+
+    if (!dragData) return;
+
+    const cell = event.currentTarget;
+    const groupId = parseInt(cell.dataset.group);
+    const day = cell.dataset.day;
+    const pair = parseInt(cell.dataset.pair);
+
+    if (dragData.type === 'new') {
+        // Создаём занятие из перетащенной дисциплины
+        createFromDrop(dragData.teacherId, dragData.subjectId, groupId, day, pair);
+    } else if (dragData.type === 'move') {
+        // Перемещаем существующее занятие
+        moveLesson(dragData.lessonId, groupId, day, pair);
+    }
+
+    dragData = null;
+}
+
+// Создание занятия перетаскиванием
+async function createFromDrop(teacherId, subjectId, groupId, day, pair) {
+    const data = {
+        group_id: groupId,
+        teacher_id: teacherId,
+        subject_id: subjectId,
+        day: day,
+        week1_lesson: pair,
+        week2_lesson: pair,
+        classroom_id: null,
+        lesson_type: 'Лекция'
+    };
+
+    const res = await fetch('/api/lessons', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    if (res.status === 409) {
+        const err = await res.json();
+        showConflicts(err.conflicts);
+        return;
+    }
+
+    if (!res.ok) {
+        alert('Ошибка создания занятия');
+        return;
+    }
+
+    await loadAll();
+}
+
+// Перемещение занятия
+async function moveLesson(lessonId, groupId, day, pair) {
+    const lesson = allLessons.find(l => l.id === lessonId);
+    if (!lesson) return;
+
+    // Определяем, куда встанет занятие: если оно уже стоит на этой неделе в другом месте,
+    // нужно поменять соответствующую неделю. По умолчанию меняем обе недели.
+    const data = {
+        group_id: groupId,
+        teacher_id: lesson.teacher_id,
+        subject_id: lesson.subject_id,
+        classroom_id: lesson.classroom_id,
+        day: day,
+        week1_lesson: pair,
+        week2_lesson: pair,
+        lesson_type: lesson.lesson_type
+    };
+
+    const res = await fetch(`/api/lessons/${lessonId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+
+    if (res.status === 409) {
+        const err = await res.json();
+        showConflicts(err.conflicts);
+        return;
+    }
+
+    if (!res.ok) {
+        alert('Ошибка перемещения');
+        return;
+    }
+
+    await loadAll();
+}
+
+// ================== ПОКАЗ КОНФЛИКТОВ ==================
+function showConflicts(conflicts) {
+    const text = conflicts.join('\n\n');
+    alert('Обнаружены конфликты:\n\n' + text);
+}
+
+// ================== МОДАЛЬНОЕ ОКНО ==================
 function openAddForm() {
     document.getElementById('modal-title').textContent = 'Добавление занятия';
     document.getElementById('lesson-id').value = '';
@@ -170,17 +341,14 @@ function openEditForm(lessonId) {
 }
 
 function fillSelects() {
-    // Группы
     const groupSel = document.getElementById('lesson-group');
     groupSel.innerHTML = allGroups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
 
-    // Преподаватели
     const teacherSel = document.getElementById('lesson-teacher');
     teacherSel.innerHTML = allTeachers.map(t =>
         `<option value="${t.id}">${t.name}</option>`
     ).join('');
 
-    // Кабинеты
     const classSel = document.getElementById('lesson-classroom');
     classSel.innerHTML = '<option value="">—</option>' +
         allClassrooms.map(c => `<option value="${c.id}">${c.number}${c.name ? ' — ' + c.name : ''}</option>`).join('');
@@ -205,6 +373,7 @@ function closeModal() {
     document.getElementById('lesson-modal').style.display = 'none';
 }
 
+// ================== СОХРАНЕНИЕ ==================
 async function saveLesson() {
     const id = document.getElementById('lesson-id').value;
 
@@ -238,6 +407,12 @@ async function saveLesson() {
         body: JSON.stringify(data)
     });
 
+    if (res.status === 409) {
+        const err = await res.json();
+        showConflicts(err.conflicts);
+        return;
+    }
+
     if (res.ok) {
         closeModal();
         await loadAll();
@@ -257,11 +432,5 @@ async function deleteCurrentLesson() {
     await loadAll();
 }
 
-function quickAdd(teacherId, subjectId) {
-    openAddForm();
-    document.getElementById('lesson-teacher').value = teacherId;
-    updateSubjectOptions();
-    document.getElementById('lesson-subject').value = subjectId;
-}
-
+// ================== СТАРТ ==================
 loadAll();

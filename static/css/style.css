@@ -407,3 +407,40 @@ td button:hover {
 }
 
 .btn-delete:hover { background: #c0392b; }
+/* ============ DRAG & DROP ============ */
+
+.cell {
+    position: relative;
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+.cell-inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.cell.drop-hover {
+    background: #d4edda !important;
+    box-shadow: inset 0 0 0 3px #27ae60;
+}
+
+.lesson-card.dragging {
+    opacity: 0.4;
+    transform: rotate(2deg);
+}
+
+.subject-item {
+    cursor: grab;
+    user-select: none;
+}
+
+.subject-item:active {
+    cursor: grabbing;
+}
+
+.subject-item:hover {
+    background: #d6eaf8;
+    color: #2874a6;
+}

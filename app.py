@@ -286,6 +286,118 @@ def get_lessons():
     conn.close()
     return jsonify([dict(l) for l in lessons])
 
+# ============ ПРОВЕРКА КОНФЛИКТОВ ============
+
+def check_conflicts(conn, lesson_data, exclude_id=None):
+    """
+    Проверяет конфликты расписания.
+    Возвращает список сообщений о конфликтах.
+    exclude_id — ID занятия, которое исключается из проверки (при редактировании).
+    """
+    conflicts = []
+
+    group_id = lesson_data.get('group_id')
+    teacher_id = lesson_data.get('teacher_id')
+    classroom_id = lesson_data.get('classroom_id')
+    day = lesson_data.get('day')
+    week1 = lesson_data.get('week1_lesson')
+    week2 = lesson_data.get('week2_lesson')
+
+    # Нормализуем значения
+    if week1 in ('', None, 'null'):
+        week1 = None
+    else:
+        week1 = int(week1)
+
+    if week2 in ('', None, 'null'):
+        week2 = None
+    else:
+        week2 = int(week2)
+
+    if classroom_id in ('', None, 'null'):
+        classroom_id = None
+    else:
+        classroom_id = int(classroom_id)
+
+    # Собираем все занятия в тот же день, кроме редактируемого
+    if exclude_id:
+        rows = conn.execute(
+            'SELECT * FROM lessons WHERE day = ? AND id != ?',
+            (day, exclude_id)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            'SELECT * FROM lessons WHERE day = ?',
+            (day,)
+        ).fetchall()
+
+    # Пары, которые занимает новое занятие
+    new_pairs = []
+    if week1:
+        new_pairs.append(('1 неделя', week1))
+    if week2:
+        new_pairs.append(('2 неделя', week2))
+
+    if not new_pairs:
+        return conflicts
+
+    # Получаем имена для сообщений
+    group = conn.execute('SELECT name FROM groups WHERE id = ?', (group_id,)).fetchone()
+    teacher = conn.execute('SELECT name FROM teachers WHERE id = ?', (teacher_id,)).fetchone()
+    group_name = group['name'] if group else '?'
+    teacher_name = teacher['name'] if teacher else '?'
+
+    classroom_name = None
+    if classroom_id:
+        cr = conn.execute('SELECT number FROM classrooms WHERE id = ?', (classroom_id,)).fetchone()
+        classroom_name = cr['number'] if cr else None
+
+    # Проверяем каждое существующее занятие
+    for r in rows:
+        for (week_label, pair_num) in new_pairs:
+            # Определяем пару в существующем занятии для соответствующей недели
+            existing_pair = r['week1_lesson'] if week_label == '1 неделя' else r['week2_lesson']
+
+            if existing_pair != pair_num:
+                continue
+
+            # Конфликт группы
+            if r['group_id'] == group_id:
+                other = conn.execute(
+                    'SELECT s.name FROM subjects s WHERE s.id = ?',
+                    (r['subject_id'],)
+                ).fetchone()
+                other_name = other['name'] if other else '?'
+                conflicts.append(
+                    f"Конфликт группы: группа «{group_name}» уже имеет занятие "
+                    f"«{other_name}» в {day}, {pair_num} пара, {week_label}."
+                )
+
+            # Конфликт преподавателя
+            if r['teacher_id'] == teacher_id:
+                other = conn.execute(
+                    'SELECT name FROM groups g WHERE g.id = ?',
+                    (r['group_id'],)
+                ).fetchone()
+                other_name = other['name'] if other else '?'
+                conflicts.append(
+                    f"Конфликт преподавателя: «{teacher_name}» уже занят в другой группе "
+                    f"({other_name}) в {day}, {pair_num} пара, {week_label}."
+                )
+
+            # Конфликт кабинета
+            if classroom_id and r['classroom_id'] == classroom_id:
+                other = conn.execute(
+                    'SELECT name FROM groups g WHERE g.id = ?',
+                    (r['group_id'],)
+                ).fetchone()
+                other_name = other['name'] if other else '?'
+                conflicts.append(
+                    f"Конфликт кабинета: кабинет «{classroom_name}» уже занят группой "
+                    f"«{other_name}» в {day}, {pair_num} пара, {week_label}."
+                )
+
+    return conflicts
 
 @app.route('/api/lessons', methods=['POST'])
 def add_lesson():
@@ -312,6 +424,13 @@ def add_lesson():
         classroom_id = None
 
     conn = get_db()
+
+    # Проверка конфликтов
+    conflicts = check_conflicts(conn, data)
+    if conflicts:
+        conn.close()
+        return jsonify({'error': 'Обнаружены конфликты', 'conflicts': conflicts}), 409
+
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO lessons 
@@ -341,6 +460,13 @@ def update_lesson(lesson_id):
         classroom_id = None
 
     conn = get_db()
+
+    # Проверка конфликтов (исключая само занятие)
+    conflicts = check_conflicts(conn, data, exclude_id=lesson_id)
+    if conflicts:
+        conn.close()
+        return jsonify({'error': 'Обнаружены конфликты', 'conflicts': conflicts}), 409
+
     conn.execute('''
         UPDATE lessons 
         SET group_id = ?, teacher_id = ?, subject_id = ?, classroom_id = ?,
